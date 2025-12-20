@@ -1,120 +1,146 @@
-<div class="card">
-    <div class="card-header d-flex justify-content-between">
-        <h3 class="card-title">Cashier List</h3>
-        <div class="card-tools align-middle">
-            <button class="btn btn-dark btn-sm py-1 rounded-0" type="button" id="create_new">Add New</button>
+<div class="card shadow-sm">
+    <div class="card-header d-flex justify-content-between align-items-center bg-light">
+        <h5 class="mb-0">Cashiers</h5>
+        <button class="btn btn-success btn-sm" id="create_new">
+            Add New
+        </button>
+    </div>
+
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="text-center" style="width:5%">#</th>
+                        <th style="width:30%">Name</th>
+                        <th class="text-center" style="width:25%">Log Status</th>
+                        <th class="text-center" style="width:25%">Status</th>
+                        <th class="text-center" style="width:15%">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php 
+                    $sql = "SELECT * FROM cashier_list ORDER BY name ASC";
+                    $qry = $conn->query($sql);
+                    $i = 1;
+                    $hasData = false;
+
+                    while ($row = $qry->fetchArray(SQLITE3_ASSOC)):
+                        $hasData = true;
+                    ?>
+                    <tr>
+                        <td class="text-center"><?= $i++ ?></td>
+                        <td><?= htmlspecialchars($row['name']) ?></td>
+
+                        <!-- Log Status -->
+                        <td class="text-center">
+                            <?php if ($row['log_status'] == 1): ?>
+                                <span class="badge bg-success">In Use</span>
+                            <?php else: ?>
+                                <span class="badge bg-secondary">Not In Use</span>
+                            <?php endif; ?>
+                        </td>
+
+                        <!-- Account Status -->
+                        <td class="text-center">
+                            <?php if ($row['status'] == 1): ?>
+                                <span class="badge bg-success">Active</span>
+                            <?php else: ?>
+                                <span class="badge bg-danger">Inactive</span>
+                            <?php endif; ?>
+                        </td>
+
+                        <!-- Actions -->
+                        <td class="text-center">
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-primary edit_data"
+                                    data-id="<?= $row['cashier_id'] ?>"
+                                    title="Edit">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
+
+                                <button class="btn btn-outline-danger delete_data"
+                                    data-id="<?= $row['cashier_id'] ?>"
+                                    data-name="<?= htmlspecialchars($row['name']) ?>"
+                                    title="Delete">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    <?php endwhile; ?>
+
+                    <?php if (!$hasData): ?>
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">
+                            No cashiers found.
+                        </td>
+                    </tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
         </div>
     </div>
-    <div class="card-body">
-        <table class="table table-hover table-striped table-bordered">
-            <colgroup>
-                <col width="5%">
-                <col width="30%">
-                <col width="25%">
-                <col width="25%">
-                <col width="15%">
-            </colgroup>
-            <thead>
-                <tr>
-                    <th class="text-center p-0">#</th>
-                    <th class="text-center p-0">Name</th>
-                    <th class="text-center p-0">Log Status</th>
-                    <th class="text-center p-0">Status</th>
-                    <th class="text-center p-0">Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php 
-                $sql = "SELECT * FROM `cashier_list`  order by `name` asc";
-                $qry = $conn->query($sql);
-                $i = 1;
-                    while($row = $qry->fetchArray()):
-                ?>
-                <tr>
-                    <td class="text-center p-0"><?php echo $i++; ?></td>
-                    <td class="py-0 px-1"><?php echo $row['name'] ?></td>
-                    <td class="py-0 px-1 text-center">
-                        <?php 
-                            if($row['log_status'] == 1){
-                                echo  '<span class="py-1 px-3 badge rounded-pill bg-success"><small>In-Use</small></span>';
-                            }else{
-                                echo  '<span class="py-1 px-3 badge rounded-pill bg-danger"><small>Not In-Use</small></span>';
-
-                            }
-                        ?>
-                    </td>
-                    <td class="py-0 px-1 text-center">
-                        <?php 
-                            if($row['status'] == 1){
-                                echo  '<span class="py-1 px-3 badge rounded-pill bg-success"><small>Active</small></span>';
-                            }else{
-                                echo  '<span class="py-1 px-3 badge rounded-pill bg-danger"><small>In-Active</small></span>';
-
-                            }
-                        ?>
-                    </td>
-                    <th class="text-center py-0 px-1">
-                        <div class="btn-group" role="group">
-                            <button id="btnGroupDrop1" type="button" class="btn btn-primary dropdown-toggle btn-sm rounded-0 py-0" data-bs-toggle="dropdown" aria-expanded="false">
-                            Action
-                            </button>
-                            <ul class="dropdown-menu" aria-labelledby="btnGroupDrop1">
-                            <li><a class="dropdown-item edit_data" data-id = '<?php echo $row['cashier_id'] ?>' href="javascript:void(0)">Edit</a></li>
-                            <li><a class="dropdown-item delete_data" data-id = '<?php echo $row['cashier_id'] ?>' data-name = '<?php echo $row['name'] ?>' href="javascript:void(0)">Delete</a></li>
-                            </ul>
-                        </div>
-                    </th>
-                </tr>
-                <?php endwhile; ?>
-                <?php if(!$qry->fetchArray()): ?>
-                    <tr>
-                        <th class="text-center p-0" colspan="5">No data display.</th>
-                    </tr>
-                <?php endif; ?>
-            </tbody>
-        </table>
-    </div>
 </div>
+
 <script>
     $(function(){
-        $('#create_new').click(function(){
-            uni_modal('Add New Cashier',"manage_cashier.php")
-        })
-        $('.edit_data').click(function(){
-            uni_modal('Edit Cashier Details',"manage_cashier.php?id="+$(this).attr('data-id'))
-        })
-        $('.delete_data').click(function(){
-            _conf("Are you sure to delete <b>"+$(this).attr('data-name')+"</b> from list?",'delete_data',[$(this).attr('data-id')])
-        })
-    })
-    function delete_data($id){
-        $('#confirm_modal button').attr('disabled',true)
-        $.ajax({
-            url:'./Actions.php?a=delete_cashier',
-            method:'POST',
-            data:{id:$id},
-            dataType:'JSON',
-            error:err=>{
-                console.log(err)
-                alert("An error occurred.")
-                $('#confirm_modal button').attr('disabled',false)
-            },
-            success:function(resp){
-                if(resp.status == 'success'){
-                    location.reload()
-                }else if(resp.status == 'failed' && !!resp.msg){
-                    var el = $('<div>')
-                    el.addClass('alert alert-danger pop-msg')
-                    el.text(resp.msg)
-                    el.hide()
-                    $('#confirm_modal .modal-body').prepend(el)
-                    el.show('slow')
-                }else{
-                    alert("An error occurred.")
-                }
-                $('#confirm_modal button').attr('disabled',false)
 
+        $('#create_new').click(function(){
+            uni_modal('Add New Cashier', 'manage_cashier.php');
+        });
+
+        $('.edit_data').click(function(){
+            uni_modal(
+                'Edit Cashier',
+                'manage_cashier.php?id=' + $(this).data('id')
+            );
+        });
+
+        $('.delete_data').click(function(){
+            const id = $(this).data('id');
+            const name = $(this).data('name');
+
+            Swal.fire({
+                title: 'Delete User?',
+                html: `Are you sure you want to delete <b>${name}</b>?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                confirmButtonText: 'Yes, delete',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    delete_data(id);
+                }
+            });
+        });
+
+    });
+
+    function delete_data(id){
+        $('#confirm_modal button').attr('disabled', true);
+
+        $.ajax({
+            url: './Actions.php?a=delete_cashier',
+            method: 'POST',
+            data: { id: id },
+            dataType: 'json',
+            success: function(resp){
+                if(resp.status === 'success'){
+                    location.reload();
+                } else if(resp.status === 'failed' && resp.msg){
+                    const el = $('<div class="alert alert-danger">').text(resp.msg);
+                    $('#confirm_modal .modal-body').prepend(el);
+                } else {
+                    alert('An error occurred.');
+                }
+                $('#confirm_modal button').attr('disabled', false);
+            },
+            error: function(){
+                alert('An error occurred.');
+                $('#confirm_modal button').attr('disabled', false);
             }
-        })
+        });
     }
 </script>
