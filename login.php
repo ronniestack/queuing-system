@@ -20,6 +20,7 @@ $_SESSION['csrf'] = bin2hex(random_bytes(32));
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <link rel="stylesheet" href="./css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="./js/jquery-3.6.0.min.js"></script>
     <script src="./js/bootstrap.min.js"></script>
 
@@ -47,16 +48,28 @@ $_SESSION['csrf'] = bin2hex(random_bytes(32));
             <form id="login-form">
                 <input type="hidden" name="csrf" value="<?= $_SESSION['csrf'] ?>">
 
+                <!-- Username -->
                 <div class="mb-3">
                     <label class="form-label">Username</label>
-                    <input type="text" name="username" class="form-control" required autofocus>
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="fa-solid fa-user"></i>
+                        </span>
+                        <input type="text" name="username" class="form-control" required autofocus>
+                    </div>
                 </div>
 
+                <!-- Password -->
                 <div class="mb-3">
                     <label class="form-label">Password</label>
                     <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="fa-solid fa-lock"></i>
+                        </span>
                         <input type="password" name="password" id="password" class="form-control" required>
-                        <button class="btn btn-outline-secondary" type="button" id="togglePass">👁</button>
+                        <button class="btn btn-outline-secondary" type="button" id="togglePass">
+                            <i class="fa-solid fa-eye" id="eyeIcon"></i>
+                        </button>
                     </div>
                 </div>
 
