@@ -1,91 +1,115 @@
-<div class="card">
-    <div class="card-header d-flex justify-content-between">
-        <h3 class="card-title">Users List</h3>
-        <div class="card-tools align-middle">
-            <button class="btn btn-dark btn-sm py-1 rounded-0" type="button" id="create_new">Add New</button>
-        </div>
+<div class="card shadow-sm">
+    <div class="card-header d-flex justify-content-between align-items-center bg-light">
+        <h5 class="mb-0">Users</h5>
+        <button class="btn btn-success btn-sm" id="create_new">
+            Add New
+        </button>
     </div>
-    <div class="card-body">
-        <table class="table table-hover table-striped table-bordered">
-            <colgroup>
-                <col width="10%">
-                <col width="40%">
-                <col width="30%">
-                <col width="20%">
-            </colgroup>
-            <thead>
-                <tr>
-                    <th class="text-center p-0">#</th>
-                    <th class="text-center p-0">Name</th>
-                    <th class="text-center p-0">Username</th>
-                    <th class="text-center p-0">Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php 
-                $sql = "SELECT * FROM `user_list` where user_id != 1 order by `fullname` asc";
-                $qry = $conn->query($sql);
-                $i = 1;
-                    while($row = $qry->fetchArray()):
-                ?>
-                <tr>
-                    <td class="text-center p-0"><?php echo $i++; ?></td>
-                    <td class="py-0 px-1"><?php echo $row['fullname'] ?></td>
-                    <td class="py-0 px-1"><?php echo $row['username'] ?></td>
-                    <th class="text-center py-0 px-1">
-                        <div class="btn-group" role="group">
-                            <button id="btnGroupDrop1" type="button" class="btn btn-primary dropdown-toggle btn-sm rounded-0 py-0" data-bs-toggle="dropdown" aria-expanded="false">
-                            Action
-                            </button>
-                            <ul class="dropdown-menu" aria-labelledby="btnGroupDrop1">
-                            <li><a class="dropdown-item edit_data" data-id = '<?php echo $row['user_id'] ?>' href="javascript:void(0)">Edit</a></li>
-                            <li><a class="dropdown-item delete_data" data-id = '<?php echo $row['user_id'] ?>' data-name = '<?php echo $row['fullname'] ?>' href="javascript:void(0)">Delete</a></li>
-                            </ul>
-                        </div>
-                    </th>
-                </tr>
-                <?php endwhile; ?>
-                <?php if(!$qry->fetchArray()): ?>
+
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
                     <tr>
-                        <th class="text-center p-0" colspan="5">No data display.</th>
+                        <th class="text-center" style="width:10%">#</th>
+                        <th style="width:40%">Full Name</th>
+                        <th style="width:30%">Username</th>
+                        <th class="text-center" style="width:20%">Action</th>
                     </tr>
-                <?php endif; ?>
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    <?php 
+                    $sql = "SELECT * FROM user_list WHERE user_id != 1 ORDER BY fullname ASC";
+                    $qry = $conn->query($sql);
+                    $i = 1;
+                    $hasData = false;
+
+                    while ($row = $qry->fetchArray(SQLITE3_ASSOC)):
+                        $hasData = true;
+                    ?>
+                    <tr>
+                        <td class="text-center"><?= $i++ ?></td>
+                        <td><?= htmlspecialchars($row['fullname']) ?></td>
+                        <td><?= htmlspecialchars($row['username']) ?></td>
+                        <td class="text-center">
+                            <div class="btn-group btn-group-sm">
+
+                                <!-- EDIT -->
+                                <button class="btn btn-outline-primary edit_data"
+                                    data-id="<?= $row['user_id'] ?>"
+                                    title="Edit">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
+                                
+                                <!-- DELETE -->
+                                <button class="btn btn-outline-danger delete_data"
+                                    data-id="<?= $row['user_id'] ?>"
+                                    data-name="<?= htmlspecialchars($row['fullname']) ?>"
+                                    title="Delete">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+
+                            </div>
+                        </td>
+                    </tr>
+                    <?php endwhile; ?>
+
+                    <?php if (!$hasData): ?>
+                    <tr>
+                        <td colspan="4" class="text-center text-muted py-4">
+                            No users found.
+                        </td>
+                    </tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 <script>
     $(function(){
+
         $('#create_new').click(function(){
-            uni_modal('Add New User',"manage_user.php")
-        })
+            uni_modal('Add New User', 'manage_user.php');
+        });
+
         $('.edit_data').click(function(){
-            uni_modal('Edit User Details',"manage_user.php?id="+$(this).attr('data-id'))
-        })
+            uni_modal(
+                'Edit User',
+                'manage_user.php?id=' + $(this).data('id')
+            );
+        });
+
         $('.delete_data').click(function(){
-            _conf("Are you sure to delete <b>"+$(this).attr('data-name')+"</b> from list?",'delete_data',[$(this).attr('data-id')])
-        })
-    })
-    function delete_data($id){
-        $('#confirm_modal button').attr('disabled',true)
+            _conf(
+                "Delete <b>" + $(this).data('name') + "</b>?",
+                'delete_data',
+                [$(this).data('id')]
+            );
+        });
+
+    });
+
+    function delete_data(id){
+        $('#confirm_modal button').attr('disabled', true);
+
         $.ajax({
-            url:'./Actions.php?a=delete_user',
-            method:'POST',
-            data:{id:$id},
-            dataType:'JSON',
-            error:err=>{
-                console.log(err)
-                alert("An error occurred.")
-                $('#confirm_modal button').attr('disabled',false)
-            },
-            success:function(resp){
-                if(resp.status == 'success'){
-                    location.reload()
-                }else{
-                    alert("An error occurred.")
-                    $('#confirm_modal button').attr('disabled',false)
+            url: './Actions.php?a=delete_user',
+            method: 'POST',
+            data: { id: id },
+            dataType: 'json',
+            success: function(resp){
+                if(resp.status === 'success'){
+                    location.reload();
+                } else {
+                    alert('An error occurred.');
+                    $('#confirm_modal button').attr('disabled', false);
                 }
+            },
+            error: function(){
+                alert('An error occurred.');
+                $('#confirm_modal button').attr('disabled', false);
             }
-        })
+        });
     }
 </script>
