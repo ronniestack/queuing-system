@@ -81,11 +81,22 @@
         });
 
         $('.delete_data').click(function(){
-            _conf(
-                "Delete <b>" + $(this).data('name') + "</b>?",
-                'delete_data',
-                [$(this).data('id')]
-            );
+            const id = $(this).data('id');
+            const name = $(this).data('name');
+
+            Swal.fire({
+                title: 'Delete User?',
+                html: `Are you sure you want to delete <b>${name}</b>?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                confirmButtonText: 'Yes, delete',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    delete_data(id);
+                }
+            });
         });
 
     });
