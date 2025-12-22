@@ -1,73 +1,96 @@
 <?php
 require_once("DBConnection.php");
-if(isset($_GET['id'])){
-$qry = $conn->query("SELECT * FROM `cashier_list` where cashier_id = '{$_GET['id']}'");
-    foreach($qry->fetchArray() as $k => $v){
-        $$k = $v;
-    }
+
+if (isset($_GET['id'])) {
+    $qry = $conn->query("SELECT * FROM cashier_list WHERE cashier_id = '{$_GET['id']}'");
+    $cashier = $qry->fetchArray(SQLITE3_ASSOC);
 }
 ?>
 <div class="container-fluid">
-    <form action="" id="cashier-form">
-        <input type="hidden" name="id" value="<?php echo isset($cashier_id) ? $cashier_id : '' ?>">
-        <div class="form-group">
-            <label for="name" class="control-label">Name</label>
-            <input type="text" name="name" autofocus id="name" required class="form-control form-control-sm rounded-0" value="<?php echo isset($name) ? $name : '' ?>">
+
+    <!-- Alert -->
+    <div id="alert-box" class="alert d-none" role="alert"></div>
+
+    <form id="cashier-form">
+        <input type="hidden" name="id" value="<?= $cashier['cashier_id'] ?? '' ?>">
+
+        <div class="mb-3">
+            <label class="form-label">Name</label>
+            <input type="text"
+                   name="name"
+                   class="form-control"
+                   required
+                   autofocus
+                   value="<?= htmlspecialchars($cashier['name'] ?? '') ?>">
         </div>
-        <div class="form-group">
-            <label for="status" class="control-label">Status</label>
-            <select name="status" id="status" class="form-select form-select-sm rounded-0" required>
-                <option value="1" <?php echo isset($status) && $status == 1 ? 'selected' : '' ?>>Active</option>
-                <option value="0" <?php echo isset($status) && $status == 0 ? 'selected' : '' ?>>Inactive</option>
+
+        <div class="mb-3">
+            <label class="form-label">Status</label>
+            <select name="status"
+                    class="form-select"
+                    required>
+                <option value="1" <?= isset($cashier['status']) && $cashier['status'] == 1 ? 'selected' : '' ?>>
+                    Active
+                </option>
+                <option value="0" <?= isset($cashier['status']) && $cashier['status'] == 0 ? 'selected' : '' ?>>
+                    Inactive
+                </option>
             </select>
         </div>
     </form>
-</div>
 
+</div>
 <script>
     $(function(){
-        $('#cashier-form').submit(function(e){
-            e.preventDefault();
-            $('.pop_msg').remove()
-            var _this = $(this)
-            var _el = $('<div>')
-                _el.addClass('pop_msg')
-            $('#uni_modal button').attr('disabled',true)
-            $('#uni_modal button[type="submit"]').text('submitting form...')
-            $.ajax({
-                url:'./Actions.php?a=save_cashier',
-                method:'POST',
-                data:$(this).serialize(),
-                dataType:'JSON',
-                error:err=>{
-                    console.log(err)
-                    _el.addClass('alert alert-danger')
-                    _el.text("An error occurred.")
-                    _this.prepend(_el)
-                    _el.show('slow')
-                     $('#uni_modal button').attr('disabled',false)
-                     $('#uni_modal button[type="submit"]').text('Save')
-                },
-                success:function(resp){
-                    if(resp.status == 'success'){
-                        _el.addClass('alert alert-success')
-                        $('#uni_modal').on('hide.bs.modal',function(){
-                            location.reload()
-                        })
-                        if("<?php echo isset($cashier_id) ?>" != 1)
-                        _this.get(0).reset();
-                    }else{
-                        _el.addClass('alert alert-danger')
-                    }
-                    _el.text(resp.msg)
 
-                    _el.hide()
-                    _this.prepend(_el)
-                    _el.show('slow')
-                     $('#uni_modal button').attr('disabled',false)
-                     $('#uni_modal button[type="submit"]').text('Save')
+        $('#cashier-form').on('submit', function(e){
+            e.preventDefault();
+
+            const form = $(this);
+            const alertBox = $('#alert-box');
+            const submitBtn = $('#uni_modal button[type="submit"]');
+
+            alertBox.addClass('d-none').removeClass('alert-success alert-danger');
+            submitBtn.prop('disabled', true).text('Saving...');
+
+            $.ajax({
+                url: './Actions.php?a=save_cashier',
+                method: 'POST',
+                data: form.serialize(),
+                dataType: 'json',
+                success: function(resp){
+                    if (resp.status === 'success') {
+                        alertBox
+                            .removeClass('d-none')
+                            .addClass('alert-success')
+                            .text(resp.msg || 'Cashier saved successfully.');
+
+                        $('#uni_modal').on('hidden.bs.modal', function(){
+                            location.reload();
+                        });
+
+                        if (!form.find('input[name="id"]').val()) {
+                            form[0].reset();
+                        }
+                    } else {
+                        alertBox
+                            .removeClass('d-none')
+                            .addClass('alert-danger')
+                            .text(resp.msg || 'An error occurred.');
+                    }
+
+                    submitBtn.prop('disabled', false).text('Save');
+                },
+                error: function(){
+                    alertBox
+                        .removeClass('d-none')
+                        .addClass('alert-danger')
+                        .text('An error occurred.');
+
+                    submitBtn.prop('disabled', false).text('Save');
                 }
-            })
-        })
-    })
+            });
+        });
+
+    });
 </script>
