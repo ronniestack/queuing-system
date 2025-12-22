@@ -20,26 +20,27 @@ $_SESSION['csrf'] = bin2hex(random_bytes(32));
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <link rel="stylesheet" href="./css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="./js/jquery-3.6.0.min.js"></script>
     <script src="./js/bootstrap.min.js"></script>
 
     <style>
         body{
             height:100vh;
-            background:#121212;
+            background:#f4f6f9;
         }
         .card{
-            box-shadow:0 0 25px rgba(0,0,0,.6);
+            box-shadow:0 0 20px rgba(0,0,0,.08);
         }
     </style>
 </head>
 
 <body class="d-flex justify-content-center align-items-center">
-<div class="col-md-4">
-    <h4 class="text-center text-light mb-4">FMMC Queuing System</h4>
 
-    <div class="card rounded-0">
+<div class="col-md-4">
+
+    <h4 class="text-center mb-3">FMMC – Cashier Queuing System</h4>
+
+    <div class="card shadow-sm">
         <div class="card-body">
 
             <!-- Alert Box -->
@@ -48,29 +49,30 @@ $_SESSION['csrf'] = bin2hex(random_bytes(32));
             <form id="login-form">
                 <input type="hidden" name="csrf" value="<?= $_SESSION['csrf'] ?>">
 
-                <!-- Username -->
                 <div class="mb-3">
                     <label class="form-label">Username</label>
-                    <div class="input-group">
-                        <span class="input-group-text">
-                            <i class="fa-solid fa-user"></i>
-                        </span>
-                        <input type="text" name="username" class="form-control" required autofocus>
-                    </div>
+                    <input type="text"
+                           name="username"
+                           class="form-control"
+                           required
+                           autofocus>
                 </div>
 
-                <!-- Password -->
-                <div class="mb-3">
+                <div class="mb-2">
                     <label class="form-label">Password</label>
-                    <div class="input-group">
-                        <span class="input-group-text">
-                            <i class="fa-solid fa-lock"></i>
-                        </span>
-                        <input type="password" name="password" id="password" class="form-control" required>
-                        <button class="btn btn-outline-secondary" type="button" id="togglePass">
-                            <i class="fa-solid fa-eye" id="eyeIcon"></i>
-                        </button>
-                    </div>
+                    <input type="password"
+                           name="password"
+                           id="password"
+                           class="form-control"
+                           required>
+                </div>
+
+                <!-- Show password checkbox -->
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="togglePassword">
+                    <label class="form-check-label" for="togglePassword">
+                        Show password
+                    </label>
                 </div>
 
                 <button class="btn btn-success w-100" type="submit">
@@ -88,52 +90,49 @@ $_SESSION['csrf'] = bin2hex(random_bytes(32));
 </div>
 
 <script>
-    // Password visibility toggle
-    $('#togglePass').on('click', function () {
-        const pass = $('#password');
-        pass.attr('type', pass.attr('type') === 'password' ? 'text' : 'password');
-    });
+    $(function(){
 
-    // Alert helper with timeout
-    function showAlert(type, message, timeout = 4000) {
-        const alertBox = $('#alert-box');
+        // Show / hide password
+        $('#togglePassword').on('change', function(){
+            $('#password').attr('type', this.checked ? 'text' : 'password');
+        });
 
-        alertBox
-            .removeClass('d-none alert-success alert-danger')
-            .addClass('alert-' + type)
-            .text(message)
-            .fadeIn();
+        // Simple alert helper
+        function showAlert(type, message, timeout = 4000) {
+            const alertBox = $('#alert-box');
+            alertBox
+                .removeClass('d-none alert-success alert-danger')
+                .addClass('alert-' + type)
+                .text(message)
+                .fadeIn();
 
-        if (timeout > 0) {
             setTimeout(() => {
-                alertBox.fadeOut(() => {
-                    alertBox.addClass('d-none');
-                });
+                alertBox.fadeOut(() => alertBox.addClass('d-none'));
             }, timeout);
         }
-    }
 
-    // AJAX login
-    $('#login-form').on('submit', function(e){
-        e.preventDefault();
+        // AJAX login
+        $('#login-form').on('submit', function(e){
+            e.preventDefault();
 
-        const btn = $('button[type=submit]');
-        btn.prop('disabled', true).text('Logging in...');
+            const btn = $('button[type=submit]');
+            btn.prop('disabled', true).text('Logging in...');
 
-        $.post('./Actions.php?a=login', $(this).serialize(), function(resp){
-            if (resp.status === 'success') {
-                showAlert('success', 'Login successful. Redirecting...', 1500);
-                setTimeout(() => location.href = './', 1500);
-            } else {
-                showAlert('danger', resp.msg);
+            $.post('./Actions.php?a=login', $(this).serialize(), function(resp){
+                if (resp.status === 'success') {
+                    showAlert('success', 'Login successful. Redirecting...', 1500);
+                    setTimeout(() => location.href = './', 1500);
+                } else {
+                    showAlert('danger', resp.msg || 'Invalid credentials.');
+                    btn.prop('disabled', false).text('Login');
+                }
+            }, 'json').fail(() => {
+                showAlert('danger', 'Server error. Please try again.');
                 btn.prop('disabled', false).text('Login');
-            }
-        }, 'json').fail(() => {
-            showAlert('danger', 'Server error. Please try again.');
-            btn.prop('disabled', false).text('Login');
+            });
         });
+
     });
 </script>
-
 </body>
 </html>
