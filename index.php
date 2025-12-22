@@ -30,15 +30,15 @@ if (!in_array($page, $allowed_pages)) {
     <link rel="stylesheet" href="./css/bootstrap.min.css">
     <link rel="stylesheet" href="./select2/css/select2.min.css">
     <link rel="stylesheet" href="./DataTables/datatables.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="./FontAwesome/css/all.min.css">
 
     <!-- JS -->
     <script src="./js/jquery-3.6.0.min.js"></script>
     <script src="./js/bootstrap.min.js"></script>
     <script src="./select2/js/select2.min.js"></script>
     <script src="./DataTables/datatables.min.js"></script>
+    <script src="./js/sweetalert2.all.min.js"></script>
     <script src="./js/script.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
         html, body {
