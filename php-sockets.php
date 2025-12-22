@@ -1,136 +1,144 @@
 <?php
-define('HOST_NAME',"localhost"); 
-// define('HOST_NAME',"192.168.43.49"); 
-define('PORT',"2306");
-$null = NULL;
+/**
+ * Windows-safe WebSocket Server
+ * Run using: php php-sockets.php
+ */
 
-class _sHandler {
-	function send($message) {
-		global $clientSocketArray;
-		$messageLength = strlen($message);
-		foreach($clientSocketArray as $clientSocket)
-		{
-			@socket_write($clientSocket,$message,$messageLength);
-		}
-		return true;
-	}
+define('HOST_NAME', '127.0.0.1'); // DO NOT use localhost on Windows
+define('PORT', 2306);
 
-	function unseal($socketData) {
-		$length = ord($socketData[1]) & 127;
-		if($length == 126) {
-			$masks = substr($socketData, 4, 4);
-			$data = substr($socketData, 8);
-		}
-		elseif($length == 127) {
-			$masks = substr($socketData, 10, 4);
-			$data = substr($socketData, 14);
-		}
-		else {
-			$masks = substr($socketData, 2, 4);
-			$data = substr($socketData, 6);
-		}
-		$socketData = "";
-		for ($i = 0; $i < strlen($data); ++$i) {
-			$socketData .= $data[$i] ^ $masks[$i%4];
-		}
-		return $socketData;
-	}
+$null = null;
 
-	function seal($socketData) {
-		$b1 = 0x80 | (0x1 & 0x0f);
-		$length = strlen($socketData);
-		
-		if($length <= 125)
-			$header = pack('CC', $b1, $length);
-		elseif($length > 125 && $length < 65536)
-			$header = pack('CCn', $b1, 126, $length);
-		elseif($length >= 65536)
-			$header = pack('CCNN', $b1, 127, $length);
-		return $header.$socketData;
-	}
+/* =========================
+   WebSocket Handler Class
+   ========================= */
+class SocketHandler {
 
-	function doHandshake($received_header,$client_socket_resource, $host_name, $port) {
-		$headers = array();
-		$lines = preg_split("/\r\n/", $received_header);
-		foreach($lines as $line)
-		{
-			$line = chop($line);
-			if(preg_match('/\A(\S+): (.*)\z/', $line, $matches))
-			{
-				$headers[$matches[1]] = $matches[2];
-			}
-		}
+    public function send($message) {
+        global $clientSocketArray;
+        foreach ($clientSocketArray as $client) {
+            if ($client !== null) {
+                @socket_write($client, $message, strlen($message));
+            }
+        }
+    }
 
-		$secKey = $headers['Sec-WebSocket-Key'];
-		$secAccept = base64_encode(pack('H*', sha1($secKey . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')));
-		$buffer  = "HTTP/1.1 101 Web Socket Protocol Handshake\r\n" .
-		"Upgrade: websocket\r\n" .
-		"Connection: Upgrade\r\n" .
-		"WebSocket-Origin: $host_name\r\n" .
-		"WebSocket-Location: ws://$host_name:$port/demo/shout.php\r\n".
-		"Sec-WebSocket-Accept:$secAccept\r\n\r\n";
-		socket_write($client_socket_resource,$buffer,strlen($buffer));
-	}
-	
-	function newConnectionACK($client_ip_address) {
-		$message = 'New client ' . $client_ip_address.' joined';
-		$messageArray = array('connection_message'=>$message,'connection_message_type'=>'chat-connection-ack');
-		$ACK = $this->seal(json_encode($messageArray));
-		return $ACK;
-	}
-	
-	function connectionDisconnectACK($client_ip_address) {
-		$message = 'Client ' . $client_ip_address.' disconnected';
-		$messageArray = array('message'=>$message,'message_type'=>'chat-connection-ack');
-		$ACK = $this->seal(json_encode($messageArray));
-		return $ACK;
-	}
-	
+    public function unseal($data) {
+        $length = ord($data[1]) & 127;
+
+        if ($length == 126) {
+            $masks = substr($data, 4, 4);
+            $payload = substr($data, 8);
+        } elseif ($length == 127) {
+            $masks = substr($data, 10, 4);
+            $payload = substr($data, 14);
+        } else {
+            $masks = substr($data, 2, 4);
+            $payload = substr($data, 6);
+        }
+
+        $decoded = '';
+        for ($i = 0; $i < strlen($payload); $i++) {
+            $decoded .= $payload[$i] ^ $masks[$i % 4];
+        }
+
+        return $decoded;
+    }
+
+    public function seal($data) {
+        $b1 = 0x81; // FIN + TEXT
+        $length = strlen($data);
+
+        if ($length <= 125) {
+            return pack('CC', $b1, $length) . $data;
+        } elseif ($length < 65536) {
+            return pack('CCn', $b1, 126, $length) . $data;
+        } else {
+            return pack('CCNN', $b1, 127, 0, $length) . $data;
+        }
+    }
+
+    public function handshake($headers, $client) {
+        if (!preg_match("/Sec-WebSocket-Key: (.*)\r\n/", $headers, $matches)) {
+            return;
+        }
+
+        $key = trim($matches[1]);
+        $accept = base64_encode(pack(
+            'H*',
+            sha1($key . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')
+        ));
+
+        $response  = "HTTP/1.1 101 Switching Protocols\r\n";
+        $response .= "Upgrade: websocket\r\n";
+        $response .= "Connection: Upgrade\r\n";
+        $response .= "Sec-WebSocket-Accept: {$accept}\r\n\r\n";
+
+        socket_write($client, $response, strlen($response));
+    }
 }
-$_sHandler = new _sHandler();
 
-$socketResource = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
-socket_set_option($socketResource, SOL_SOCKET, SO_REUSEADDR, 1);
-socket_bind($socketResource, 0, PORT);
-socket_listen($socketResource);
+/* =========================
+   Server Initialization
+   ========================= */
+$handler = new SocketHandler();
 
-$clientSocketArray = array($socketResource);
+$serverSocket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
+socket_set_option($serverSocket, SOL_SOCKET, SO_REUSEADDR, 1);
+socket_bind($serverSocket, HOST_NAME, PORT);
+socket_listen($serverSocket);
+
+echo "WebSocket server running on ws://" . HOST_NAME . ":" . PORT . PHP_EOL;
+
+$clientSocketArray = [$serverSocket];
+
+/* =========================
+   Main Event Loop
+   ========================= */
 while (true) {
-	$newSocketArray = $clientSocketArray;
-	socket_select($newSocketArray, $null, $null, 0, 10);
-	
-	if (in_array($socketResource, $newSocketArray)) {
-		$newSocket = socket_accept($socketResource);
-		$clientSocketArray[] = $newSocket;
-		
-		$header = socket_read($newSocket, 1024);
-		$_sHandler->doHandshake($header, $newSocket, HOST_NAME, PORT);
-		
-		socket_getpeername($newSocket, $client_ip_address);
-		$connectionACK = $_sHandler->newConnectionACK($client_ip_address);
-		
-		$_sHandler->send($connectionACK);
-		
-		$newSocketIndex = array_search($socketResource, $newSocketArray);
-		unset($newSocketArray[$newSocketIndex]);
-	}
-	
-	foreach ($newSocketArray as $newSocketArrayResource) {	
-		while(socket_recv($newSocketArrayResource, $socketData, 1024, 0) >= 1){
-			$socketMessage = $_sHandler->unseal($socketData);
-			$messageObj = json_decode($socketMessage);
-			$_sHandler->send($_sHandler->seal(json_encode($messageObj)));
-			break 2;
-		}
-		
-		$socketData = @socket_read($newSocketArrayResource, 1024, PHP_NORMAL_READ);
-		if ($socketData === false) { 
-			socket_getpeername($newSocketArrayResource, $client_ip_address);
-			// $connectionACK = $_sHandler->connectionDisconnectACK($client_ip_address);
-			$_sHandler->send($connectionACK);
-			$newSocketIndex = array_search($newSocketArrayResource, $clientSocketArray);
-			unset($clientSocketArray[$newSocketIndex]);			
-		}
-	}
+
+    $changedSockets = $clientSocketArray;
+    socket_select($changedSockets, $null, $null, 0, 10);
+
+    /* New Connection */
+    if (in_array($serverSocket, $changedSockets)) {
+        $newClient = socket_accept($serverSocket);
+        $clientSocketArray[] = $newClient;
+
+        $headers = socket_read($newClient, 1024);
+        $handler->handshake($headers, $newClient);
+
+        socket_getpeername($newClient, $ip);
+        echo "Client connected: {$ip}" . PHP_EOL;
+
+        unset($changedSockets[array_search($serverSocket, $changedSockets)]);
+    }
+
+    /* Handle Client Messages */
+    foreach ($changedSockets as $client) {
+
+        $bytes = @socket_recv($client, $data, 2048, 0);
+
+        // Client disconnected
+        if ($bytes === false || $bytes === 0) {
+            socket_getpeername($client, $ip);
+            socket_close($client);
+
+            $index = array_search($client, $clientSocketArray);
+            unset($clientSocketArray[$index]);
+
+            echo "Client disconnected: {$ip}" . PHP_EOL;
+            continue;
+        }
+
+        // Message received
+        if ($bytes > 0) {
+            $message = $handler->unseal($data);
+
+            // Broadcast message to all clients
+            $handler->send($handler->seal($message));
+        }
+    }
 }
-socket_close($socketResource);
+
+socket_close($serverSocket);
