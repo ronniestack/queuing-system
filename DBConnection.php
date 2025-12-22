@@ -62,7 +62,7 @@ class DBConnection extends SQLite3 {
         $this->exec("
             INSERT OR IGNORE INTO user_list 
             (user_id, fullname, username, password, status) 
-            VALUES (1, 'Administrator', 'admin', md5('admin123'), 1)
+            VALUES (1, 'Administrator', 'admin', md5('password'), 1)
         ");
     }
 
