@@ -1,78 +1,104 @@
-<h3>Welcome to Cashier Queuing System</h3>
+<h4>FMMC – Cashier Queuing System</h4>
 <hr>
-<div class="col-12">
-    <div class="col-md-12">
-        <?php 
-            $vid = scandir('./video');
-            $video = $vid[2];
-            if($video):
-        ?>
-            <center><video src="./video/<?php echo $video ?>" autoplay muted controls id="vid_loop" class="bg-dark" loop style="height:50vh;width:75%"></video></center>
-        <?php 
-            endif; 
-        ?>
-        <form action="" id="upload-form">
-            <input type="hidden" name="video" value="<?php echo $video; ?>">
-            <div class="row justify-content-center my-2">
-                <div class="form-group col-md-4">
-                    <label for="vid" class="control-label">Update Video</label>
-                    <input type="file" name="vid" id="vid" class="form-control" accept="video/*" required>
-                </div>
+
+<?php 
+    $vid = scandir('./video');
+    $video = $vid[2] ?? null;
+?>
+
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+
+        <div class="card shadow-sm">
+            <div class="card-body text-center">
+
+                <?php if ($video): ?>
+                    <video 
+                        src="./video/<?= $video ?>" 
+                        class="bg-dark mb-2"
+                        style="max-height:50vh; width:100%;"
+                        autoplay 
+                        muted 
+                        loop 
+                        controls>
+                    </video>
+                <?php else: ?>
+                    <p class="text-muted">No video uploaded.</p>
+                <?php endif; ?>
+
+                <!-- Alert -->
+                <div id="alert-box" class="alert d-none"></div>
+
+                <form id="upload-form" enctype="multipart/form-data">
+                    <input type="hidden" name="video" value="<?= $video ?>">
+
+                    <div class="row justify-content-center mb-3">
+                        <div class="col-md-6 text-start">
+                            <label class="form-label">Update Video</label>
+                            <input 
+                                type="file" 
+                                name="vid" 
+                                class="form-control" 
+                                accept="video/*" 
+                                required>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-success" type="submit">
+                        Update Video
+                    </button>
+                </form>
+
             </div>
-            <div class="row justify-content-center my-2">
-                <center>
-                    <button class="btn btn-primary" type="submit">Update</button>
-                </center>
-            </div>
-        </form>
+        </div>
+
     </div>
 </div>
 <script>
     $(function(){
-        $('#upload-form').submit(function(e){
+
+        $('#upload-form').on('submit', function(e){
             e.preventDefault();
-            $('.pop_msg').remove()
-            var _this = $(this)
-            var _el = $('<div>')
-                _el.addClass('pop_msg')
-            _this.find('button').attr('disabled',true)
-            _this.find('button[type="submit"]').text('updating video...')
+
+            const form = $(this);
+            const btn = form.find('button[type="submit"]');
+            const alertBox = $('#alert-box');
+
+            alertBox.addClass('d-none').removeClass('alert-success alert-danger');
+            btn.prop('disabled', true).text('Uploading...');
+
             $.ajax({
-                url:'./Actions.php?a=update_video',
-                data: new FormData($(this)[0]),
-                cache: false,
+                url: './Actions.php?a=update_video',
+                method: 'POST',
+                data: new FormData(this),
                 contentType: false,
                 processData: false,
-                method: 'POST',
-                type: 'POST',
                 dataType: 'json',
-                error:err=>{
-                    console.log(err)
-                    _el.addClass('alert alert-danger')
-                    _el.text("An error occurred.")
-                    _this.prepend(_el)
-                    _el.show('slow')
-                     _this.find('button').attr('disabled',false)
-                     _this.find('button[type="submit"]').text('Update')
-                },
-                success:function(resp){
-                    if(resp.status == 'success'){
-                        _el.addClass('alert alert-success')
-                        location.reload()
-                        if("<?php echo isset($department_id) ?>" != 1)
-                        _this.get(0).reset();
-                    }else{
-                        _el.addClass('alert alert-danger')
-                    }
-                    _el.text(resp.msg)
+                success: function(resp){
+                    if (resp.status === 'success') {
+                        alertBox
+                            .removeClass('d-none')
+                            .addClass('alert-success')
+                            .text(resp.msg || 'Video updated successfully.');
 
-                    _el.hide()
-                    _this.prepend(_el)
-                    _el.show('slow')
-                     _this.find('button').attr('disabled',false)
-                     _this.find('button[type="submit"]').text('Save')
+                        setTimeout(() => location.reload(), 1200);
+                    } else {
+                        alertBox
+                            .removeClass('d-none')
+                            .addClass('alert-danger')
+                            .text(resp.msg || 'Upload failed.');
+                    }
+                    btn.prop('disabled', false).text('Update Video');
+                },
+                error: function(){
+                    alertBox
+                        .removeClass('d-none')
+                        .addClass('alert-danger')
+                        .text('An error occurred.');
+                    btn.prop('disabled', false).text('Update Video');
                 }
-            })
-        })
-    })
+            });
+        });
+
+    });
 </script>
