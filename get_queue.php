@@ -1,60 +1,102 @@
-<?php
+<?php 
 require_once('./DBConnection.php');
-if(isset($_GET['id'])){
-    $qry = $conn->query("SELECT * FROM `queue_list` where queue_id = '{$_GET['id']}'");
-    @$res = $qry->fetchArray();
-    if($res){
-        foreach($res as $k => $v){
-            if(!is_numeric($k)){
-                $$k = $v;
-            }
-        }
-    }
+
+if (isset($_GET['id'])) {
+    $qry = $conn->query("SELECT * FROM queue_list WHERE queue_id = '{$_GET['id']}'");
+    $res = $qry->fetchArray(SQLITE3_ASSOC);
 }
 ?>
+
 <style>
-    #uni_modal .modal-footer{
-        display:none;
+    #uni_modal .modal-footer {
+        display: none;
+    }
+
+    .queue-card {
+        border-left: 6px solid #0dcaf0;
+    }
+
+    .queue-number {
+        font-size: 4rem;
+        font-weight: 700;
+        letter-spacing: 2px;
+    }
+
+    @media print {
+        button { display: none !important; }
     }
 </style>
-<div class="container fluid">
-    <?php if(isset($_GET['success']) && $_GET['success'] == true): ?>
-        <div class="alert alert-success">Your Queue Number is successfully generated.</div>
+
+<div class="container-fluid px-3">
+
+    <?php if (!empty($_GET['success'])): ?>
+        <div class="alert alert-success text-center">
+            Your queue number has been generated successfully.
+        </div>
     <?php endif; ?>
+
+    <!-- QUEUE CARD -->
     <div id="outprint">
-        <div class="row justify-content-end">
-            <div class="col-12">
-                <div class="card border-0 border-left border-start rounded-0 border-5 border-info">
-                    <div class="fs-1 fw-bold text-center"><?php echo $queue ?></div>
-                    <center><?php echo $customer_name ?></center>
+        <div class="card queue-card shadow-sm mb-3">
+            <div class="card-body text-center py-4">
+
+                <div class="queue-number mb-2">
+                    <?= htmlspecialchars($res['queue'] ?? '---') ?>
                 </div>
+
+                <div class="fs-5 text-muted">
+                    <?= htmlspecialchars($res['customer_name'] ?? '') ?>
+                </div>
+
             </div>
         </div>
     </div>
-    <div class="row my-2 mx-0 justify-content-end align-items-center">
-        <button class="btn btn-success rounded-0 me-2 col-sm-4" id="print" type="button"><i class="fa fa-print"></i> Print</button>
-        <button class="btn btn-dark rounded-0 col-sm-4" data-bs-dismiss="modal" type="button"><i class="fa fa-times"></i> Close</button>
+
+    <!-- ACTION BUTTONS -->
+    <div class="d-flex justify-content-center gap-3">
+        <button class="btn btn-success px-4" id="print">
+            <i class="fa-solid fa-print me-1"></i> Print
+        </button>
+
+        <button class="btn btn-outline-secondary px-4"
+                data-bs-dismiss="modal">
+            <i class="fa-solid fa-xmark me-1"></i> Close
+        </button>
     </div>
+
 </div>
+
 <script>
     $(function(){
-        $('#print').click(function(){
-            var _el = $('<div>')
-            var _h = $('head').clone()
-            var _p = $('#outprint').clone()
-            _h.find('title').text("Queue Number - Print")
-            _el.append(_h)
-            _el.append(_p)
-            var nw = window.open('','_blank','width=700,height=500,top=75,left=200')
-                nw.document.write(_el.html())
-                nw.document.close()
+
+        $('#print').on('click', function () {
+
+            const head = $('head').clone();
+            const content = $('#outprint').clone();
+
+            head.find('title').text('Queue Number');
+
+            const printWindow = window.open('', '_blank', 'width=700,height=500');
+
+            printWindow.document.write(`
+                <html>
+                    ${head.prop('outerHTML')}
+                    <body class="p-4">
+                        ${content.prop('outerHTML')}
+                    </body>
+                </html>
+            `);
+
+            printWindow.document.close();
+
+            setTimeout(() => {
+                printWindow.print();
                 setTimeout(() => {
-                    nw.print()
-                    setTimeout(() => {
-                        nw.close()
-                        $('#uni_modal').modal('hide')
-                    }, 200);
-                }, 500);
-        })
-    })
+                    printWindow.close();
+                    $('#uni_modal').modal('hide');
+                }, 300);
+            }, 500);
+        });
+
+    });
 </script>
